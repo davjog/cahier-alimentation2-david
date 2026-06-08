@@ -1,277 +1,196 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <title>Calendrier d'Alimentation — Beaufort</title>
-  <meta name="apple-mobile-web-app-capable" content="yes"/>
-  <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
-  <meta name="apple-mobile-web-app-title" content="Beaufort"/>
-  <meta name="mobile-web-app-capable" content="yes"/>
-  <meta name="theme-color" content="#2e7d45"/>
-  <link rel="manifest" href="./manifest.json"/>
-  <link rel="icon" href="./icon.svg" type="image/svg+xml"/>
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f7f5f0; color: #2c2416; min-height: 100vh; }
-    input { font-family: inherit; }
-    button { font-family: inherit; cursor: pointer; }
-    :root {
-      --bg: #f7f5f0; --card: #fff; --border: #e2ddd5;
-      --text: #2c2416; --muted: #7a6f60;
-      --green: #2e7d45; --green-light: #e8f5ec;
-    }
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: #f0ede8; }
-    ::-webkit-scrollbar-thumb { background: #c8bfb0; border-radius: 3px; }
-    .cell-input {
-      width: 100%; background: #fafaf8; border: 1.5px solid #d0c8be;
-      border-radius: 5px; padding: 4px 6px; font-size: 13px; color: #2c2416; outline: none;
-      transition: border-color .15s;
-    }
-    .cell-input:focus { border-color: var(--green); background: #fff; }
-    .cell-input::placeholder { color: #b0a898; }
-    input { color: #2c2416; font-size: 13px; }
-    input::placeholder { color: #b0a898; }
-    .dropdown { animation: fadeIn .12s ease; }
-    @keyframes fadeIn { from { opacity:0; transform:translateY(-4px); } to { opacity:1; transform:translateY(0); } }
-    .tab-btn { background:transparent; border:none; border-bottom:2.5px solid transparent; color:var(--muted); padding:13px 20px; font-size:13px; font-weight:400; transition:all .15s; display:flex; align-items:center; gap:6px; }
-    .tab-btn.active { border-bottom-color:var(--green); color:var(--green); font-weight:700; }
-    .tab-btn:hover:not(.active) { color:var(--text); }
-    .chip { border-radius:20px; padding:5px 14px; font-size:12px; border:1.5px solid; transition:all .15s; display:inline-flex; align-items:center; gap:5px; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .spin { display:inline-block; animation:spin .8s linear infinite; }
-    @media print {
-      @page { size:A4 portrait; margin:12mm 10mm; }
-      .no-print { display:none !important; }
-      body { background:#fff; }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#2e7d45">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Beaufort">
+<title>Calendrier Beaufort</title>
+<link rel="manifest" href="manifest.json">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f7f5f0;color:#2c2416;min-height:100vh}
+input,button{font-family:inherit}
+button{cursor:pointer}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:#f0ede8}
+::-webkit-scrollbar-thumb{background:#c8bfb0;border-radius:3px}
+.cell-input{width:100%;background:#fafaf8;border:1.5px solid #d0c8be;border-radius:5px;padding:4px 6px;font-size:13px;color:#2c2416;outline:none;transition:border-color .15s}
+.cell-input:focus{border-color:#2e7d45;background:#fff}
+.cell-input::placeholder{color:#b0a898}
+input{color:#2c2416;font-size:13px}
+input::placeholder{color:#b0a898}
+.dropdown{animation:fadeIn .12s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+.tab-btn{background:transparent;border:none;border-bottom:2.5px solid transparent;color:#7a6f60;padding:13px 20px;font-size:13px;font-weight:400;transition:all .15s;display:flex;align-items:center;gap:6px}
+.tab-btn.active{border-bottom-color:#2e7d45;color:#2e7d45;font-weight:700}
+.chip{border-radius:20px;padding:5px 14px;font-size:12px;border:1.5px solid;transition:all .15s;display:inline-flex;align-items:center;gap:5px}
+@media print{@page{size:A4 portrait;margin:12mm 10mm}.no-print{display:none!important}body{background:#fff}}
+</style>
 </head>
 <body>
 <div id="app"></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\/script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"><\/script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script>
-const CAMPAGNES = [2023,2024,2025,2026,2027,2028,2029,2030];
-function makePeriodes(y1) {
-  const y2 = y1+1;
-  return [
-    `01 - 15 avril ${y1}`,`16 - 30 avril ${y1}`,
-    `01 - 15 mai ${y1}`,`16 - 31 mai ${y1}`,
-    `01 - 15 juin ${y1}`,`16 - 30 juin ${y1}`,
-    `01 - 15 juillet ${y1}`,`16 - 31 juillet ${y1}`,
-    `01 - 15 août ${y1}`,`16 - 31 août ${y1}`,
-    `01 - 15 septembre ${y1}`,`16 - 30 septembre ${y1}`,
-    `01 - 15 octobre ${y1}`,`16 - 31 octobre ${y1}`,
-    `01 - 15 novembre ${y1}`,`16 - 30 novembre ${y1}`,
-    `01 - 15 décembre ${y1}`,`16 - 31 décembre ${y1}`,
-    `01 - 15 janvier ${y2}`,`16 - 31 janvier ${y2}`,
-    `01 - 14 février ${y2}`,`16 - 28 février ${y2}`,
-    `01 - 15 mars ${y2}`,`16 - 31 mars ${y2}`,
-  ].map(p => ({periode:p,vlT:'',vlTaries:'',pensionT:'',pensionTaries:'',ration:'',concentre:''}));
-}
-const MOIS_LAIT = ['Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre','Janvier','Février','Mars'];
-const JOURS_MOIS = [30,31,30,31,31,30,31,30,31,31,28,31];
-function makeLait(y1) {
-  const y2 = y1+1;
-  return MOIS_LAIT.map((m,i) => ({mois:m,annee:i<9?y1:y2,litres:''}));
-}
-function makeDates() {
-  return [
-    {label:"Mise à l'herbe VL",value:'',hl:true},
-    {label:"Démontagnée (<1500m d'altitude)",value:'',hl:false},
-    {label:"Arrêt du foin VL au printemps",value:'',hl:true},
-    {label:"Stocks concentrés démontagnée",value:'',hl:false},
-    {label:"Stocks sortie complète vaches (foin concentrés)",value:'',hl:true},
-    {label:"Début distribution foin VL à l'automne",value:'',hl:true},
-    {label:"Mise à l'herbe génisses",value:'',hl:true},
-    {label:"Stocks rentrée vaches (concentrés)",value:'',hl:false},
-    {label:"Mise à l'herbe autres espèces",value:'',hl:false},
-    {label:"Rentrée étable VL",value:'',hl:false},
-    {label:"Emmontagnée (>1500m d'altitude)",value:'',hl:false},
-    {label:"Rentrée étable génisses",value:'',hl:false},
-    {label:"Stocks concentrés Emmontagnée",value:'',hl:false},
-    {label:"Rentrée étable autres espèces",value:'',hl:false},
-  ];
-}
-const SC = {
-  lait_hiver:{accent:'#1d4ed8',light:'#eff6ff',badge:'#bfdbfe',label:'Lait Hiver',emoji:'🏔️',text:'#1e3a8a'},
-  lait_mi:{accent:'#7c3aed',light:'#f5f3ff',badge:'#ddd6fe',label:'Lait Mi-saison',emoji:'🌿',text:'#4c1d95'},
-  lait_ete:{accent:'#15803d',light:'#f0fdf4',badge:'#bbf7d0',label:'Lait Été',emoji:'🌞',text:'#14532d'},
-};
-function getSeason(p) {
-  const s=p.toLowerCase();
-  if(s.includes('avril')||s.includes('déc')||s.includes('jan')||s.includes('fév')||s.includes('mars')) return 'lait_hiver';
-  if(s.includes('mai')||s.includes('nov')) return 'lait_mi';
-  return 'lait_ete';
-}
-let state={campagne:2026,allData:{},tab:'calendrier',filter:'all',campMenu:false,menuOpen:false,pdfLoading:false};
+const CAMPAGNES=[2023,2024,2025,2026,2027,2028,2029,2030];
+function makePeriodes(y1){const y2=y1+1;return[`01 - 15 avril ${y1}`,`16 - 30 avril ${y1}`,`01 - 15 mai ${y1}`,`16 - 31 mai ${y1}`,`01 - 15 juin ${y1}`,`16 - 30 juin ${y1}`,`01 - 15 juillet ${y1}`,`16 - 31 juillet ${y1}`,`01 - 15 août ${y1}`,`16 - 31 août ${y1}`,`01 - 15 septembre ${y1}`,`16 - 30 septembre ${y1}`,`01 - 15 octobre ${y1}`,`16 - 31 octobre ${y1}`,`01 - 15 novembre ${y1}`,`16 - 30 novembre ${y1}`,`01 - 15 décembre ${y1}`,`16 - 31 décembre ${y1}`,`01 - 15 janvier ${y2}`,`16 - 31 janvier ${y2}`,`01 - 14 février ${y2}`,`16 - 28 février ${y2}`,`01 - 15 mars ${y2}`,`16 - 31 mars ${y2}`].map(p=>({periode:p,vlT:'',vlTaries:'',pensionT:'',pensionTaries:'',ration:'',concentre:''}));}
+const MOIS_LAIT=['Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre','Janvier','Février','Mars'];
+const JOURS_MOIS=[30,31,30,31,31,30,31,30,31,31,28,31];
+function makeLait(y1){const y2=y1+1;return MOIS_LAIT.map((m,i)=>({mois:m,annee:i<9?y1:y2,litres:''}));}
+function makeDates(){return[{label:"Mise à l'herbe VL",value:'',hl:true},{label:"Démontagnée (<1500m d'altitude)",value:'',hl:false},{label:"Arrêt du foin VL au printemps",value:'',hl:true},{label:"Stocks concentrés démontagnée",value:'',hl:false},{label:"Stocks sortie complète vaches (foin concentrés)",value:'',hl:true},{label:"Début distribution foin VL à l'automne",value:'',hl:true},{label:"Mise à l'herbe génisses",value:'',hl:true},{label:"Stocks rentrée vaches (concentrés)",value:'',hl:false},{label:"Mise à l'herbe autres espèces",value:'',hl:false},{label:"Rentrée étable VL",value:'',hl:false},{label:"Emmontagnée (>1500m d'altitude)",value:'',hl:false},{label:"Rentrée étable génisses",value:'',hl:false},{label:"Stocks concentrés Emmontagnée",value:'',hl:false},{label:"Rentrée étable autres espèces",value:'',hl:false}];}
+const SC={lait_hiver:{accent:'#1d4ed8',light:'#eff6ff',badge:'#bfdbfe',label:'Lait Hiver',emoji:'🏔️',text:'#1e3a8a'},lait_mi:{accent:'#7c3aed',light:'#f5f3ff',badge:'#ddd6fe',label:'Lait Mi-saison',emoji:'🌿',text:'#4c1d95'},lait_ete:{accent:'#15803d',light:'#f0fdf4',badge:'#bbf7d0',label:'Lait Été',emoji:'🌞',text:'#14532d'}};
+function getSeason(p){const s=p.toLowerCase();if(s.includes('avril')||s.includes('déc')||s.includes('jan')||s.includes('fév')||s.includes('mars'))return'lait_hiver';if(s.includes('mai')||s.includes('nov'))return'lait_mi';return'lait_ete';}
+let state={campagne:2026,allData:{},tab:'calendrier',filter:'all',campMenu:false,menuOpen:false};
 function getcamp(yr){const d=state.allData[yr]||{};return{periodes:d.periodes||makePeriodes(yr),dates:d.dates||makeDates(),lait:d.lait||makeLait(yr)};}
 function setState(patch){Object.assign(state,patch);render();}
 function save(d){try{localStorage.setItem('beaufort-cal',JSON.stringify(d));}catch(_){}}
 function load(){try{const d=localStorage.getItem('beaufort-cal');if(d)state.allData=JSON.parse(d);}catch(_){}}
-let _saveTimer=null;
-function debouncedSave(){clearTimeout(_saveTimer);_saveTimer=setTimeout(()=>save(state.allData),1500);}
-function updateData(idx,field,value){const camp=getcamp(state.campagne);const periodes=camp.periodes.map((r,i)=>i===idx?{...r,[field]:value}:r);state.allData={...state.allData,[state.campagne]:{periodes,dates:camp.dates,lait:camp.lait}};debouncedSave();}
-function updateDates(idx,value){const camp=getcamp(state.campagne);const dates=camp.dates.map((d,i)=>i===idx?{...d,value}:d);state.allData={...state.allData,[state.campagne]:{periodes:camp.periodes,dates,lait:camp.lait}};debouncedSave();}
-function updateLait(idx,value){const camp=getcamp(state.campagne);const lait=camp.lait.map((r,i)=>i===idx?{...r,litres:value}:r);state.allData={...state.allData,[state.campagne]:{periodes:camp.periodes,dates:camp.dates,lait}};debouncedSave();}
-function resetCampagne(){if(!confirm(`Effacer les données de la campagne ${state.campagne}–${state.campagne+1} ?`))return;const next={...state.allData,[state.campagne]:{periodes:makePeriodes(state.campagne),dates:makeDates(),lait:makeLait(state.campagne)}};state.allData=next;save(next);setState({menuOpen:false});}
-function exportCSV(){const{periodes}=getcamp(state.campagne);const csv=["Période,VL Traites,VL Taries,Pension Traites,Pension Taries,Ration,Concentré",...periodes.map(r=>`"${r.periode}","${r.vlT}","${r.vlTaries}","${r.pensionT}","${r.pensionTaries}","${r.ration}","${r.concentre}"`)].join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));a.download=`calendrier-${state.campagne}-${state.campagne+1}.csv`;a.click();setState({menuOpen:false});}
-function generatePDF(){setState({menuOpen:false,pdfLoading:true});const camp=getcamp(state.campagne);const{periodes,dates}=camp;const yr=state.campagne;try{const{jsPDF}=window.jspdf;const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});const W=190;let y=12;const gf=[212,237,218];doc.setFont('helvetica','bold');doc.setFontSize(16);doc.text("Calendrier d'Alimentation",105,y,{align:'center'});y+=6;doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text("Nom ou raison sociale :",10,y);y+=5;doc.setFillColor(...gf);doc.rect(10,y,W,5,'F');doc.setDrawColor(150);doc.rect(10,y,W,5);doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text("Dates principales de conduite du troupeau sur l'année",105,y+3.5,{align:'center'});y+=5;doc.autoTable({startY:y,margin:{left:10,right:10},tableWidth:W,head:[],body:[[dates[0].label,dates[0].value||'',dates[1].label,dates[1].value||''],[dates[2].label,dates[2].value||'',dates[3].label,dates[3].value||''],[dates[4].label,dates[4].value||'',dates[5].label,dates[5].value||''],[dates[6].label,dates[6].value||'',dates[7].label,dates[7].value||''],[dates[8].label,dates[8].value||'',dates[9].label,dates[9].value||''],[dates[10].label,dates[10].value||'',dates[11].label,dates[11].value||''],[dates[12].label,dates[12].value||'',dates[13].label,dates[13].value||'']],columnStyles:{0:{cellWidth:52,fontStyle:'italic',fontSize:7.5},1:{cellWidth:40,fontSize:7.5},2:{cellWidth:52,fontStyle:'italic',fontSize:7.5},3:{cellWidth:40,fontSize:7.5}},styles:{fontSize:7.5,cellPadding:1,lineColor:[150,150,150],lineWidth:0.2},theme:'grid'});y=doc.lastAutoTable.finalY+4;const sCol={lait_hiver:[239,246,255],lait_mi:[245,243,255],lait_ete:[240,253,244]};const sBrd={lait_hiver:[29,78,216],lait_mi:[124,58,237],lait_ete:[21,128,61]};doc.autoTable({startY:y,margin:{left:10,right:10},tableWidth:W,head:[[{content:`Année ${yr}–${yr+1}`,rowSpan:2,styles:{fontStyle:'bold',fillColor:gf,halign:'left'}},{content:"Sur l'exploitation",colSpan:2,styles:{fontStyle:'bold',fillColor:gf,halign:'center'}},{content:'Pension – Hiverne',colSpan:2,styles:{fontStyle:'bold',fillColor:gf,halign:'center'}},{content:'Nature ration de base',rowSpan:2,styles:{fontStyle:'bold',fillColor:gf,halign:'left'}},{content:'Nature concentré',rowSpan:2,styles:{fontStyle:'bold',fillColor:gf,halign:'center'}}],[{content:'VL Traites',styles:{fontStyle:'bold',fillColor:[220,240,220],halign:'center'}},{content:'VL Taries',styles:{fontStyle:'bold',fillColor:[220,240,220],halign:'center'}},{content:'VL Traites',styles:{fontStyle:'bold',fillColor:[220,240,220],halign:'center'}},{content:'VL Taries',styles:{fontStyle:'bold',fillColor:[220,240,220],halign:'center'}}]],body:periodes.map(r=>[r.periode,r.vlT||'',r.vlTaries||'',r.pensionT||'',r.pensionTaries||'',r.ration||'',r.concentre||'']),columnStyles:{0:{cellWidth:30,fontSize:6.5},1:{cellWidth:13,halign:'center',fontStyle:'bold',fontSize:7},2:{cellWidth:13,halign:'center',fontSize:7},3:{cellWidth:13,halign:'center',fontSize:7},4:{cellWidth:13,halign:'center',fontSize:7},5:{cellWidth:82,fontSize:6.5},6:{cellWidth:16,halign:'center',fontSize:7}},styles:{fontSize:7,cellPadding:1,lineColor:[150,150,150],lineWidth:0.2,overflow:'linebreak'},didParseCell:(d)=>{if(d.section==='body'){const s=getSeason(d.row.raw[0]);d.cell.styles.fillColor=sCol[s]||[255,255,255];}},didDrawCell:(d)=>{if(d.section==='body'&&d.column.index===0){const s=getSeason(d.row.raw[0]);const[r,g,b]=sBrd[s]||[200,200,200];doc.setDrawColor(r,g,b);doc.setLineWidth(0.8);doc.line(d.cell.x,d.cell.y,d.cell.x,d.cell.y+d.cell.height);doc.setLineWidth(0.2);doc.setDrawColor(150,150,150);}},theme:'grid'});doc.save(`calendrier-alimentation-${yr}-${yr+1}.pdf`);}catch(err){alert('Erreur PDF : '+err.message);}setState({pdfLoading:false});}
+let _t=null;
+function dsave(){clearTimeout(_t);_t=setTimeout(()=>save(state.allData),1500);}
+function updateData(idx,field,value){const c=getcamp(state.campagne);const p=c.periodes.map((r,i)=>i===idx?{...r,[field]:value}:r);state.allData={...state.allData,[state.campagne]:{periodes:p,dates:c.dates,lait:c.lait}};dsave();}
+function updateDates(idx,value){const c=getcamp(state.campagne);const d=c.dates.map((r,i)=>i===idx?{...r,value}:r);state.allData={...state.allData,[state.campagne]:{periodes:c.periodes,dates:d,lait:c.lait}};dsave();}
+function updateLait(idx,value){const c=getcamp(state.campagne);const l=c.lait.map((r,i)=>i===idx?{...r,litres:value}:r);state.allData={...state.allData,[state.campagne]:{periodes:c.periodes,dates:c.dates,lait:l}};dsave();}
+function resetCampagne(){if(!confirm(`Effacer ${state.campagne}–${state.campagne+1} ?`))return;state.allData={...state.allData,[state.campagne]:{periodes:makePeriodes(state.campagne),dates:makeDates(),lait:makeLait(state.campagne)}};save(state.allData);setState({menuOpen:false});}
+function exportCSV(){const{periodes}=getcamp(state.campagne);const csv=["Période,VL Traites,VL Taries,Pension Traites,Pension Taries,Ration,Concentré",...periodes.map(r=>`"${r.periode}","${r.vlT}","${r.vlTaries}","${r.pensionT}","${r.pensionTaries}","${r.ration}","${r.concentre}"`)].join('\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'}));a.download=`cal-${state.campagne}.csv`;a.click();setState({menuOpen:false});}
+function exportJSON(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(state.allData,null,2)],{type:'application/json'}));a.download='beaufort.json';a.click();setState({menuOpen:false});}
+function importJSON(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);state.allData={...state.allData,...d};save(state.allData);setState({menuOpen:false});alert('Importé !');}catch(_){alert('Fichier invalide.');}};r.readAsText(f);}
+function generatePDF(){setState({menuOpen:false});const{periodes,dates}=getcamp(state.campagne);const yr=state.campagne;try{const{jsPDF}=window.jspdf;const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});const W=190;let y=12;const gf=[212,237,218];doc.setFont('helvetica','bold');doc.setFontSize(16);doc.text("Calendrier d'Alimentation",105,y,{align:'center'});y+=6;doc.setFont('helvetica','normal');doc.setFontSize(9);doc.text("Nom ou raison sociale :",10,y);y+=5;doc.setFillColor(...gf);doc.rect(10,y,W,5,'F');doc.setFont('helvetica','bold');doc.setFontSize(8);doc.text("Dates principales de conduite du troupeau",105,y+3.5,{align:'center'});y+=5;doc.autoTable({startY:y,margin:{left:10,right:10},tableWidth:W,head:[],body:dates.reduce((a,_,i)=>i%2===0?[...a,[dates[i].label,dates[i].value||'',dates[i+1]?dates[i+1].label:'',dates[i+1]?dates[i+1].value||'':'']]:a,[]),columnStyles:{0:{cellWidth:52,fontSize:7.5},1:{cellWidth:40,fontSize:7.5},2:{cellWidth:52,fontSize:7.5},3:{cellWidth:40,fontSize:7.5}},styles:{fontSize:7.5,cellPadding:1,lineColor:[150,150,150],lineWidth:0.2},theme:'grid'});y=doc.lastAutoTable.finalY+4;const sC={lait_hiver:[239,246,255],lait_mi:[245,243,255],lait_ete:[240,253,244]};const sB={lait_hiver:[29,78,216],lait_mi:[124,58,237],lait_ete:[21,128,61]};doc.autoTable({startY:y,margin:{left:10,right:10},tableWidth:W,head:[[{content:`Année ${yr}–${yr+1}`,rowSpan:2,styles:{fontStyle:'bold',fillColor:gf}},{content:"Sur l'exploitation",colSpan:2,styles:{fontStyle:'bold',fillColor:gf,halign:'center'}},{content:'Pension',colSpan:2,styles:{fontStyle:'bold',fillColor:gf,halign:'center'}},{content:'Ration de base',rowSpan:2,styles:{fontStyle:'bold',fillColor:gf}},{content:'Concentré',rowSpan:2,styles:{fontStyle:'bold',fillColor:gf,halign:'center'}}],[{content:'VL Traites',styles:{fontStyle:'bold',fillColor:[220,240,220],halign:'center'}},{content:'VL Taries',styles:{fontStyle:'bold',fillColor:[220,240,220],halign:'center'}},{content:'VL Traites',styles:{fontStyle:'bold',fillColor:[220,240,220],halign:'center'}},{content:'VL Taries',styles:{fontStyle:'bold',fillColor:[220,240,220],halign:'center'}}]],body:periodes.map(r=>[r.periode,r.vlT||'',r.vlTaries||'',r.pensionT||'',r.pensionTaries||'',r.ration||'',r.concentre||'']),columnStyles:{0:{cellWidth:30,fontSize:6.5},1:{cellWidth:13,halign:'center',fontSize:7},2:{cellWidth:13,halign:'center',fontSize:7},3:{cellWidth:13,halign:'center',fontSize:7},4:{cellWidth:13,halign:'center',fontSize:7},5:{cellWidth:82,fontSize:6.5},6:{cellWidth:16,halign:'center',fontSize:7}},styles:{fontSize:7,cellPadding:1,lineColor:[150,150,150],lineWidth:0.2},didParseCell:d=>{if(d.section==='body'){d.cell.styles.fillColor=sC[getSeason(d.row.raw[0])]||[255,255,255];}},didDrawCell:d=>{if(d.section==='body'&&d.column.index===0){const[r,g,b]=sB[getSeason(d.row.raw[0])]||[200,200,200];doc.setDrawColor(r,g,b);doc.setLineWidth(0.8);doc.line(d.cell.x,d.cell.y,d.cell.x,d.cell.y+d.cell.height);doc.setLineWidth(0.2);doc.setDrawColor(150,150,150);}},theme:'grid'});doc.save(`beaufort-${yr}-${yr+1}.pdf`);}catch(err){alert('Erreur PDF: '+err.message);}}
+
 function render(){
-  const{campagne,tab,filter,campMenu,menuOpen,pdfLoading}=state;
+  const{campagne,tab,filter,campMenu,menuOpen}=state;
   const{periodes:data,dates,lait}=getcamp(campagne);
   const filtered=filter==='all'?data:data.filter(r=>getSeason(r.periode)===filter);
   const filled=data.filter(r=>r.vlT!=='');
-  const avg=filled.length>0?(filled.reduce((a,r)=>a+(parseFloat(r.vlT)||0),0)/filled.length).toFixed(1):'—';
-  const max=filled.length>0?Math.max(...filled.map(r=>parseFloat(r.vlT)||0)):'—';
-  const app=document.getElementById('app');
-  app.innerHTML=`
+  const avg=filled.length?(filled.reduce((a,r)=>a+(parseFloat(r.vlT)||0),0)/filled.length).toFixed(1):'—';
+  const max=filled.length?Math.max(...filled.map(r=>parseFloat(r.vlT)||0)):'—';
+  document.getElementById('app').innerHTML=`
   <div style="min-height:100vh;background:#f7f5f0;">
-    <header class="no-print" style="background:#fff;border-bottom:3px solid #2e7d45;box-shadow:0 2px 16px #00000010;padding:0 16px;display:flex;align-items:center;min-height:64px;gap:12px;position:sticky;top:0;z-index:100;">
-      <div style="display:flex;align-items:center;gap:12px;padding-right:16px;border-right:1px solid #e2ddd5;flex-shrink:0;">
-        <div style="width:40px;height:40px;background:linear-gradient(135deg,#2e7d45,#1a5c2a);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 3px 10px #2e7d4544;">🐄</div>
+    <header class="no-print" style="background:#fff;border-bottom:3px solid #2e7d45;box-shadow:0 2px 12px #0001;padding:0 16px;display:flex;align-items:center;min-height:60px;gap:12px;position:sticky;top:0;z-index:100;">
+      <div style="display:flex;align-items:center;gap:10px;padding-right:14px;border-right:1px solid #e2ddd5;flex-shrink:0;">
+        <div style="width:38px;height:38px;background:linear-gradient(135deg,#2e7d45,#1a5c2a);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;">🐄</div>
         <div>
-          <div style="font-size:14px;font-weight:800;color:#2c2416;">Calendrier d'Alimentation</div>
-          <div style="margin-top:3px;">
-            <div id="camp-btn-wrap" style="position:relative;display:inline-block;">
-              <button id="camp-btn" style="background:${campMenu?'#2e7d45':'#1a5c2a'};border:none;border-radius:7px;padding:2px 10px;display:flex;align-items:center;gap:6px;cursor:pointer;">
-                <span style="font-size:11px;font-weight:800;color:#fff;">Beaufort · ${campagne}–${campagne+1}</span>
-                <span style="font-size:9px;color:#a8d8b8;">${campMenu?'▲':'▼'}</span>
-              </button>
-              ${campMenu?`<div id="camp-menu" class="dropdown" style="position:absolute;top:calc(100% + 6px);left:0;background:#fff;border:1px solid #e2ddd5;border-radius:12px;box-shadow:0 8px 28px #0000001a;min-width:190px;z-index:2000;overflow:hidden;">
-                <div style="padding:8px 16px 6px;font-size:9px;color:#7a6f60;letter-spacing:2px;text-transform:uppercase;border-bottom:1px solid #e2ddd5;">Choisir la campagne</div>
-                ${CAMPAGNES.map(yr=>{const has=!!(state.allData[yr]?.periodes?.some(r=>r.vlT));const active=yr===campagne;return \`<button onclick="selectCampagne(\${yr})" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:10px 16px;background:\${active?'#e8f5ec':'transparent'};border:none;border-bottom:1px solid #e2ddd5;color:\${active?'#2e7d45':'#2c2416'};font-size:14px;font-weight:\${active?800:400};cursor:pointer;">\${yr}–\${yr+1}\${has?\`<span style="color:#2e7d45;font-size:10px;">●</span>\`:''}\${active?\`<span style="color:#2e7d45;">✓</span>\`:''}</button>\`;}).join('')}
-              </div>`:''}
-            </div>
+          <div style="font-size:13px;font-weight:800;color:#2c2416;">Calendrier Beaufort</div>
+          <div id="cbw" style="position:relative;display:inline-block;margin-top:2px;">
+            <button id="cbtn" style="background:#1a5c2a;border:none;border-radius:6px;padding:2px 9px;display:flex;align-items:center;gap:5px;cursor:pointer;">
+              <span style="font-size:11px;font-weight:800;color:#fff;">${campagne}–${campagne+1}</span>
+              <span style="font-size:9px;color:#a8d8b8;">${campMenu?'▲':'▼'}</span>
+            </button>
+            ${campMenu?`<div class="dropdown" style="position:absolute;top:calc(100% + 4px);left:0;background:#fff;border:1px solid #e2ddd5;border-radius:10px;box-shadow:0 6px 24px #0002;min-width:160px;z-index:2000;overflow:hidden;">
+              ${CAMPAGNES.map(yr=>{const a=yr===campagne;return`<button onclick="setState({campagne:${yr},campMenu:false,tab:'calendrier',filter:'all'})" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:9px 14px;background:${a?'#e8f5ec':'transparent'};border:none;border-bottom:1px solid #e2ddd5;color:${a?'#2e7d45':'#2c2416'};font-size:13px;font-weight:${a?700:400};cursor:pointer;">${yr}–${yr+1}${a?'<span style="color:#2e7d45;">✓</span>':''}</button>`;}).join('')}
+            </div>`:''}
           </div>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-        ${[{l:'Moy. VL',v:avg},{l:'Max VL',v:max},{l:'Saisies',v:\`${filled.length}/24\`}].map(s=>\`<div style="display:flex;align-items:center;gap:6px;border-left:1px solid #e2ddd5;padding-left:16px;"><div><div style="font-size:16px;font-weight:800;color:#2e7d45;line-height:1.1;">\${s.v}</div><div style="font-size:8px;color:#7a6f60;text-transform:uppercase;letter-spacing:.5px;">\${s.l}</div></div></div>\`).join('')}
+      <div style="display:flex;gap:14px;flex-wrap:wrap;">
+        ${[{l:'Moy.',v:avg},{l:'Max',v:max},{l:'Saisis',v:filled.length+'/24'}].map(s=>`<div style="border-left:1px solid #e2ddd5;padding-left:14px;"><div style="font-size:15px;font-weight:800;color:#2e7d45;">${s.v}</div><div style="font-size:9px;color:#7a6f60;text-transform:uppercase;">${s.l}</div></div>`).join('')}
       </div>
       <div style="flex:1;"></div>
-      <div id="menu-btn-wrap" style="position:relative;">
-        <button id="menu-btn" style="background:${menuOpen?'#e8f5ec':'transparent'};border:1.5px solid ${menuOpen?'#2e7d45':'#e2ddd5'};border-radius:9px;width:40px;height:40px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;cursor:pointer;">
-          ${menuOpen?`<span style="font-size:16px;color:#2e7d45;">✕</span>`:`<span style="display:block;width:16px;height:2px;background:#7a6f60;border-radius:2px;"></span><span style="display:block;width:16px;height:2px;background:#7a6f60;border-radius:2px;"></span><span style="display:block;width:16px;height:2px;background:#7a6f60;border-radius:2px;"></span>`}
+      <div id="mbw" style="position:relative;">
+        <button id="mbtn" style="background:${menuOpen?'#e8f5ec':'transparent'};border:1.5px solid ${menuOpen?'#2e7d45':'#e2ddd5'};border-radius:8px;width:38px;height:38px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;">
+          ${menuOpen?`<span style="font-size:15px;color:#2e7d45;">✕</span>`:`<span style="display:block;width:15px;height:2px;background:#7a6f60;border-radius:2px;"></span><span style="display:block;width:15px;height:2px;background:#7a6f60;border-radius:2px;"></span><span style="display:block;width:15px;height:2px;background:#7a6f60;border-radius:2px;"></span>`}
         </button>
-        ${menuOpen?`<div class="dropdown" style="position:absolute;top:calc(100% + 10px);right:0;background:#fff;border:1px solid #e2ddd5;border-radius:14px;box-shadow:0 8px 32px #0000001c;min-width:240px;z-index:1000;overflow:hidden;">
-          <button onclick="generatePDF()" style="display:flex;align-items:center;gap:12px;width:100%;padding:12px 16px;background:transparent;border:none;color:#2c2416;font-size:13px;text-align:left;border-bottom:1px solid #e2ddd5;cursor:pointer;">
-            <span style="font-size:20px;">📄</span><div><div style="font-weight:600;">Télécharger PDF</div><div style="font-size:10px;color:#7a6f60;">Mise en page A4</div></div>
-          </button>
-          <button onclick="exportCSV()" style="display:flex;align-items:center;gap:12px;width:100%;padding:12px 16px;background:transparent;border:none;color:#2c2416;font-size:13px;text-align:left;border-bottom:1px solid #e2ddd5;cursor:pointer;">
-            <span style="font-size:20px;">📥</span><div><div style="font-weight:600;">Exporter CSV</div></div>
-          </button>
-          <button onclick="exportJSON()" style="display:flex;align-items:center;gap:12px;width:100%;padding:12px 16px;background:transparent;border:none;color:#2c2416;font-size:13px;text-align:left;border-bottom:1px solid #e2ddd5;cursor:pointer;">
-            <span style="font-size:20px;">💾</span><div><div style="font-weight:600;">Sauvegarder toutes les données</div></div>
-          </button>
-          <label style="display:flex;align-items:center;gap:12px;width:100%;padding:12px 16px;background:transparent;border-bottom:1px solid #e2ddd5;cursor:pointer;">
-            <span style="font-size:20px;">📂</span><div><div style="font-weight:600;font-size:13px;">Importer des données</div></div>
-            <input type="file" accept=".json" onchange="importJSON(event)" style="display:none;"/>
-          </label>
-          <button onclick="resetCampagne()" style="display:flex;align-items:center;gap:12px;width:100%;padding:10px 16px;background:transparent;border:none;color:#dc2626;font-size:13px;text-align:left;cursor:pointer;">
-            <span style="font-size:20px;">🗑️</span><div><div style="font-weight:600;">Réinitialiser cette campagne</div></div>
-          </button>
+        ${menuOpen?`<div class="dropdown" style="position:absolute;top:calc(100% + 8px);right:0;background:#fff;border:1px solid #e2ddd5;border-radius:12px;box-shadow:0 8px 28px #0002;min-width:220px;z-index:1000;overflow:hidden;">
+          ${[{fn:'generatePDF()',icon:'📄',t:'Télécharger PDF'},{fn:'exportCSV()',icon:'📥',t:'Exporter CSV'},{fn:'exportJSON()',icon:'💾',t:'Sauvegarder JSON'}].map(m=>`<button onclick="${m.fn}" style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;background:transparent;border:none;border-bottom:1px solid #e2ddd5;color:#2c2416;font-size:13px;text-align:left;cursor:pointer;"><span style="font-size:18px;">${m.icon}</span><span style="font-weight:600;">${m.t}</span></button>`).join('')}
+          <label style="display:flex;align-items:center;gap:10px;width:100%;padding:11px 14px;background:transparent;border-bottom:1px solid #e2ddd5;cursor:pointer;"><span style="font-size:18px;">📂</span><span style="font-weight:600;font-size:13px;">Importer JSON</span><input type="file" accept=".json" onchange="importJSON(event)" style="display:none;"/></label>
+          <button onclick="resetCampagne()" style="display:flex;align-items:center;gap:10px;width:100%;padding:10px 14px;background:transparent;border:none;color:#dc2626;font-size:13px;text-align:left;cursor:pointer;"><span style="font-size:18px;">🗑️</span><span style="font-weight:600;">Réinitialiser</span></button>
         </div>`:''}
       </div>
     </header>
-    <nav class="no-print" style="background:#fff;border-bottom:1px solid #e2ddd5;display:flex;padding-left:20px;">
-      ${[{id:'calendrier',icon:'📋',label:'Calendrier'},{id:'troupeau',icon:'🗓',label:'Dates troupeau'},{id:'lait',icon:'🥛',label:'Lait'},{id:'graphique',icon:'📊',label:'Graphique'}].map(t=>`<button class="tab-btn ${tab===t.id?'active':''}" onclick="setState({tab:'${t.id}'})"><span>${t.icon}</span>${t.label}</button>`).join('')}
+    <nav class="no-print" style="background:#fff;border-bottom:1px solid #e2ddd5;display:flex;padding-left:16px;">
+      ${[{id:'calendrier',icon:'📋',label:'Calendrier'},{id:'troupeau',icon:'🗓',label:'Dates'},{id:'lait',icon:'🥛',label:'Lait'},{id:'graphique',icon:'📊',label:'Graphique'}].map(t=>`<button class="tab-btn ${tab===t.id?'active':''}" onclick="setState({tab:'${t.id}'})"><span>${t.icon}</span>${t.label}</button>`).join('')}
     </nav>
-    <main style="padding:22px 16px;max-width:1200px;margin:0 auto;">
-      ${tab==='calendrier'?renderCalendrier(data,filtered,filter):''}
-      ${tab==='troupeau'?renderTroupeau(dates,campagne):''}
-      ${tab==='lait'?renderLait(lait,data,campagne):''}
-      ${tab==='graphique'?renderGraphique(data,filled,campagne):''}
+    <main style="padding:20px 14px;max-width:1200px;margin:0 auto;">
+      ${tab==='calendrier'?rCal(data,filtered,filter):''}
+      ${tab==='troupeau'?rTroupeau(dates,campagne):''}
+      ${tab==='lait'?rLait(lait,data,campagne):''}
+      ${tab==='graphique'?rGraph(data,filled,campagne):''}
     </main>
-    <footer class="no-print" style="text-align:center;padding:14px;color:#bbb;font-size:10px;letter-spacing:2px;border-top:1px solid #e2ddd5;margin-top:16px;background:#fff;">
-      BEAUFORT · CALENDRIER D'ALIMENTATION · ${campagne}–${campagne+1}
-    </footer>
+    <footer class="no-print" style="text-align:center;padding:12px;color:#ccc;font-size:10px;letter-spacing:2px;border-top:1px solid #e2ddd5;background:#fff;">BEAUFORT · ${campagne}–${campagne+1}</footer>
   </div>`;
   bindEvents();
 }
-function renderCalendrier(data,filtered,filter){
-  const chips=[{id:'all',label:'Tout afficher',accent:'#2e7d45'},{id:'lait_hiver',...SC.lait_hiver},{id:'lait_mi',...SC.lait_mi},{id:'lait_ete',...SC.lait_ete}];
-  return `<div style="display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;">${chips.map(f=>{const active=filter===f.id;const col=f.accent||SC[f.id]?.accent||'#2e7d45';return `<button class="chip" onclick="setState({filter:'${f.id}'})" style="background:${active?col:'#fff'};border-color:${active?col:'#e2ddd5'};color:${active?'#fff':'#7a6f60'};font-weight:${active?600:400};">${f.emoji?`<span>${f.emoji}</span>`:''}${f.id==='all'?'Tout afficher':f.label}</button>`;}).join('')}</div>
-  <div style="border-radius:14px;border:1px solid #e2ddd5;overflow:hidden;box-shadow:0 2px 16px #00000009;">
+
+function rCal(data,filtered,filter){
+  const chips=[{id:'all',label:'Tout',accent:'#2e7d45'},{id:'lait_hiver',...SC.lait_hiver},{id:'lait_mi',...SC.lait_mi},{id:'lait_ete',...SC.lait_ete}];
+  return`<div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">${chips.map(f=>{const a=filter===f.id;const c=f.accent||'#2e7d45';return`<button class="chip" onclick="setState({filter:'${f.id}'})" style="background:${a?c:'#fff'};border-color:${a?c:'#e2ddd5'};color:${a?'#fff':'#7a6f60'};font-weight:${a?600:400};">${f.emoji||''}${f.id==='all'?'Tout':f.label}</button>`;}).join('')}</div>
+  <div style="border-radius:12px;border:1px solid #e2ddd5;overflow:hidden;">
     <div style="overflow-x:auto;">
-      <table style="width:100%;border-collapse:collapse;min-width:800px;">
-        <thead><tr style="background:#f4f1eb;">${[{l:'Période',w:'16%'},{l:'VL Traites',w:'9%'},{l:'VL Taries',w:'9%'},{l:'Pension Traites',w:'10%'},{l:'Pension Taries',w:'10%'},{l:'Nature ration de base',w:'30%'},{l:'Concentré',w:'8%'}].map(h=>`<th style="padding:11px 10px;text-align:left;font-size:10px;color:#7a6f60;letter-spacing:.8px;font-weight:600;border-bottom:2px solid #e2ddd5;text-transform:uppercase;width:${h.w};">${h.l}</th>`).join('')}</tr></thead>
-        <tbody>${filtered.map(row=>{const s=getSeason(row.periode);const sc=SC[s];const gi=data.findIndex(r=>r.periode===row.periode);const has=row.vlT||row.vlTaries||row.ration;return `<tr style="background:${has?sc.light:'#fff'};border-left:4px solid ${has?sc.accent:'transparent'};"><td style="padding:7px 10px;border-bottom:1px solid #e2ddd5;"><div style="display:flex;align-items:center;gap:7px;"><span style="background:${sc.badge};color:${sc.text};border-radius:6px;padding:1px 7px;font-size:11px;font-weight:700;">${sc.emoji}</span><span style="font-size:12px;color:#2c2416;font-weight:${has?600:400};white-space:nowrap;">${row.periode}</span></div></td><td style="padding:5px 7px;border-bottom:1px solid #e2ddd5;"><input class="cell-input" data-idx="${gi}" data-field="vlT" value="${row.vlT}" placeholder="—" style="text-align:center;font-weight:700;border-color:${row.vlT?sc.accent+'55':'#d0c8be'};"/></td><td style="padding:5px 7px;border-bottom:1px solid #e2ddd5;"><input class="cell-input" data-idx="${gi}" data-field="vlTaries" value="${row.vlTaries}" placeholder="—" style="text-align:center;"/></td><td style="padding:5px 7px;border-bottom:1px solid #e2ddd5;"><input class="cell-input" data-idx="${gi}" data-field="pensionT" value="${row.pensionT}" placeholder="—" style="text-align:center;"/></td><td style="padding:5px 7px;border-bottom:1px solid #e2ddd5;"><input class="cell-input" data-idx="${gi}" data-field="pensionTaries" value="${row.pensionTaries}" placeholder="—" style="text-align:center;"/></td><td style="padding:5px 7px;border-bottom:1px solid #e2ddd5;"><input class="cell-input" data-idx="${gi}" data-field="ration" value="${row.ration}" placeholder="Herbe, Foin, Luzerne…"/></td><td style="padding:5px 7px;border-bottom:1px solid #e2ddd5;"><input class="cell-input" data-idx="${gi}" data-field="concentre" value="${row.concentre}" placeholder="UC/UL" style="text-align:center;"/></td></tr>`;}).join('')}</tbody>
+      <table style="width:100%;border-collapse:collapse;min-width:750px;">
+        <thead><tr style="background:#f4f1eb;">${['Période','VL Traites','VL Taries','Pension Traites','Pension Taries','Ration de base','Concentré'].map((h,i)=>`<th style="padding:10px;text-align:left;font-size:10px;color:#7a6f60;font-weight:600;border-bottom:2px solid #e2ddd5;text-transform:uppercase;">${h}</th>`).join('')}</tr></thead>
+        <tbody>${filtered.map(row=>{const s=getSeason(row.periode);const sc=SC[s];const gi=data.findIndex(r=>r.periode===row.periode);const has=row.vlT||row.vlTaries||row.ration;return`<tr style="background:${has?sc.light:'#fff'};border-left:4px solid ${has?sc.accent:'transparent'};"><td style="padding:6px 10px;border-bottom:1px solid #e2ddd5;"><div style="display:flex;align-items:center;gap:6px;"><span style="background:${sc.badge};color:${sc.text};border-radius:5px;padding:1px 6px;font-size:11px;font-weight:700;">${sc.emoji}</span><span style="font-size:12px;white-space:nowrap;">${row.periode}</span></div></td><td style="padding:4px 6px;border-bottom:1px solid #e2ddd5;"><input class="cell-input" data-idx="${gi}" data-field="vlT" value="${row.vlT}" placeholder="—" style="text-align:center;font-weight:700;"/></td><td style="padding:4px 6px;border-bottom:1px solid #e2ddd5;"><input class="cell-input" data-idx="${gi}" data-field="vlTaries" value="${row.vlTaries}" placeholder="—" style="text-align:center;"/></td><td style="padding:4px 6px;border-bottom:1px solid #e2ddd5;"><input class="cell-input" data-idx="${gi}" data-field="pensionT" value="${row.pensionT}" placeholder="—" style="text-align:center;"/></td><td style="padding:4px 6px;border-bottom:1px solid #e2ddd5;"><input class="cell-input" data-idx="${gi}" data-field="pensionTaries" value="${row.pensionTaries}" placeholder="—" style="text-align:center;"/></td><td style="padding:4px 6px;border-bottom:1px solid #e2ddd5;"><input class="cell-input" data-idx="${gi}" data-field="ration" value="${row.ration}" placeholder="Herbe, Foin…"/></td><td style="padding:4px 6px;border-bottom:1px solid #e2ddd5;"><input class="cell-input" data-idx="${gi}" data-field="concentre" value="${row.concentre}" placeholder="UC" style="text-align:center;"/></td></tr>`;}).join('')}</tbody>
       </table>
     </div>
   </div>`;
 }
-function renderTroupeau(dates,campagne){
-  return `<div style="background:#e8f5ec;border:1px solid #2e7d4544;border-left:4px solid #2e7d45;border-radius:10px;padding:10px 16px;margin-bottom:20px;font-size:12px;color:#2e7d45;font-weight:500;">📝 Dates et stocks clés — campagne ${campagne}–${campagne+1}</div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:10px;">
-    ${dates.map((item,i)=>`<div style="background:${item.hl?'#e8f5ec':'#fff'};border:1.5px solid ${item.hl?'#2e7d4555':'#e2ddd5'};border-radius:12px;padding:13px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;">
-      <div style="font-size:12px;color:${item.hl?'#1a5c2a':'#7a6f60'};flex:1;font-weight:${item.hl?600:400};">${item.hl?'<span style="margin-right:6px;">🔑</span>':''}${item.label}</div>
-      <input data-didx="${i}" value="${item.value}" placeholder="—" style="background:#fafaf8;border:1.5px solid ${item.value?'#2e7d45':'#e2ddd5'};border-radius:8px;color:#2c2416;padding:6px 12px;font-size:13px;font-family:inherit;width:155px;text-align:center;outline:none;font-weight:${item.value?700:400};"/>
+
+function rTroupeau(dates,campagne){
+  return`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:10px;">
+    ${dates.map((item,i)=>`<div style="background:${item.hl?'#e8f5ec':'#fff'};border:1.5px solid ${item.hl?'#2e7d4555':'#e2ddd5'};border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px;">
+      <div style="font-size:12px;color:${item.hl?'#1a5c2a':'#7a6f60'};flex:1;font-weight:${item.hl?600:400};">${item.hl?'🔑 ':''}${item.label}</div>
+      <input data-didx="${i}" value="${item.value}" placeholder="—" style="background:#fafaf8;border:1.5px solid ${item.value?'#2e7d45':'#e2ddd5'};border-radius:7px;color:#2c2416;padding:5px 10px;font-size:13px;font-family:inherit;width:140px;text-align:center;outline:none;"/>
     </div>`).join('')}
   </div>`;
 }
-function renderLait(lait,periodes,campagne){
-  const MOIS_IDX=['avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre','janvier','février','mars'];
-  function avgVLForMois(moisLabel){const m=moisLabel.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');const rows=periodes.filter(r=>{const p=r.periode.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');return p.includes(m);});const vals=rows.map(r=>parseFloat(r.vlT)).filter(v=>!isNaN(v));return vals.length?(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1):'—';}
-  const totalLitres=lait.reduce((s,r)=>s+(parseFloat(r.litres)||0),0);
-  const moisRenseignes=lait.filter(r=>r.litres!=='').length;
+
+function rLait(lait,periodes,campagne){
+  function avgVL(m){const n=m.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');const v=periodes.filter(r=>r.periode.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').includes(n)).map(r=>parseFloat(r.vlT)).filter(v=>!isNaN(v));return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):'—';}
+  const tot=lait.reduce((s,r)=>s+(parseFloat(r.litres)||0),0);
+  const mS=['lait_hiver','lait_mi','lait_ete','lait_ete','lait_ete','lait_ete','lait_ete','lait_mi','lait_hiver','lait_hiver','lait_hiver','lait_hiver'];
+  const avgVLA=(()=>{const v=periodes.map(r=>parseFloat(r.vlT)).filter(v=>!isNaN(v));return v.length?(v.reduce((a,b)=>a+b,0)/v.length).toFixed(1):'—';})();
+  const tJ=JOURS_MOIS.reduce((a,b)=>a+b,0);
+  const campV=(tot>0&&avgVLA!=='—')?Math.round(tot/parseFloat(avgVLA)):null;
   const maxL=Math.max(...lait.map(r=>parseFloat(r.litres)||0),1);
-  const moisSeason=['lait_hiver','lait_mi','lait_ete','lait_ete','lait_ete','lait_ete','lait_ete','lait_mi','lait_hiver','lait_hiver','lait_hiver','lait_hiver'];
-  const avgVLAnn=(()=>{const vals=periodes.map(r=>parseFloat(r.vlT)).filter(v=>!isNaN(v));return vals.length?(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(1):'—';})();
-  const totalJours=JOURS_MOIS.reduce((a,b)=>a+b,0);
-  const avgLParJ=totalLitres>0?(totalLitres/totalJours).toFixed(0):'—';
-  const thisCampVal=(totalLitres>0&&avgVLAnn!=='—')?Math.round(totalLitres/parseFloat(avgVLAnn)):null;
-  const avgParVLParJ=(totalLitres>0&&avgVLAnn!=='—')?(totalLitres/parseFloat(avgVLAnn)/totalJours).toFixed(1):'—';
-  const rows=lait.map((row,i)=>{
-    const season=moisSeason[i];const sc=SC[season];
-    const litres=parseFloat(row.litres)||0;
-    const avgVL=avgVLForMois(row.mois);
-    const litresParVacheParJour=(litres>0&&avgVL!=='—')?(litres/parseFloat(avgVL)/JOURS_MOIS[i]).toFixed(1):'—';
-    const barW=litres>0?Math.round((litres/maxL)*100):0;
-    return `<tr style="background:${litres?sc.light:'#fff'};border-left:4px solid ${litres?sc.accent:'transparent'};">
-      <td style="padding:8px 12px;border-bottom:1px solid #e2ddd5;white-space:nowrap;"><div style="display:flex;align-items:center;gap:8px;"><span style="background:${sc.badge};color:${sc.text};border-radius:6px;padding:1px 8px;font-size:11px;font-weight:700;">${sc.emoji}</span><span style="font-size:13px;font-weight:${litres?600:400};">${row.mois} <span style="font-size:10px;color:#7a6f60;">${row.annee}</span></span></div></td>
-      <td style="padding:6px 8px;border-bottom:1px solid #e2ddd5;"><input data-lait-idx="${i}" value="${row.litres}" placeholder="0" style="width:110px;background:#fafaf8;border:1.5px solid ${litres?sc.accent+'55':'#d0c8be'};border-radius:6px;padding:5px 8px;font-size:13px;font-weight:${litres?700:400};color:#2c2416;text-align:right;outline:none;font-family:inherit;"/><span style="font-size:11px;color:#7a6f60;margin-left:6px;">L</span></td>
-      <td style="padding:6px 12px;border-bottom:1px solid #e2ddd5;font-size:13px;color:#7a6f60;text-align:center;">${JOURS_MOIS[i]}j</td>
-      <td style="padding:6px 12px;border-bottom:1px solid #e2ddd5;text-align:center;"><span style="font-size:14px;font-weight:700;color:${litresParVacheParJour!=='—'?sc.accent:'#ccc'};">${litresParVacheParJour}</span><span style="font-size:10px;color:#7a6f60;margin-left:2px;">${litresParVacheParJour!=='—'?'L/VL/j':''}</span></td>
-      <td style="padding:6px 12px;border-bottom:1px solid #e2ddd5;min-width:100px;"><div style="background:#f0ede8;border-radius:4px;height:10px;overflow:hidden;"><div style="width:${barW}%;height:100%;background:${sc.accent};border-radius:4px;"></div></div></td>
-    </tr>`;
+  const rows=lait.map((row,i)=>{const sc=SC[mS[i]];const l=parseFloat(row.litres)||0;const av=avgVL(row.mois);const lpvj=(l>0&&av!=='—')?(l/parseFloat(av)/JOURS_MOIS[i]).toFixed(1):'—';const bw=l>0?Math.round((l/maxL)*100):0;
+    return`<tr style="background:${l?sc.light:'#fff'};border-left:4px solid ${l?sc.accent:'transparent'};"><td style="padding:7px 12px;border-bottom:1px solid #e2ddd5;"><span style="background:${sc.badge};color:${sc.text};border-radius:5px;padding:1px 6px;font-size:11px;font-weight:700;margin-right:6px;">${sc.emoji}</span>${row.mois} <span style="font-size:10px;color:#7a6f60;">${row.annee}</span></td>
+    <td style="padding:5px 8px;border-bottom:1px solid #e2ddd5;"><input data-lait-idx="${i}" value="${row.litres}" placeholder="0" style="width:100px;background:#fafaf8;border:1.5px solid ${l?sc.accent+'55':'#d0c8be'};border-radius:5px;padding:4px 7px;font-size:13px;font-weight:${l?700:400};color:#2c2416;text-align:right;outline:none;font-family:inherit;"/> L</td>
+    <td style="padding:5px 12px;border-bottom:1px solid #e2ddd5;text-align:center;font-size:13px;font-weight:700;color:${lpvj!=='—'?sc.accent:'#ccc'};">${lpvj}${lpvj!=='—'?' L/VL/j':''}</td>
+    <td style="padding:5px 12px;border-bottom:1px solid #e2ddd5;min-width:90px;"><div style="background:#f0ede8;border-radius:3px;height:8px;overflow:hidden;"><div style="width:${bw}%;height:100%;background:${sc.accent};border-radius:3px;"></div></div></td></tr>`;
   }).join('');
-  return `<div style="background:#e8f5ec;border-left:4px solid #2e7d45;border-radius:10px;padding:10px 16px;margin-bottom:20px;font-size:12px;color:#2e7d45;font-weight:500;">🥛 Production laitière — ${campagne}–${campagne+1}</div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;">
-    ${[{icon:'🥛',label:'Total annuel',value:totalLitres>0?(totalLitres.toLocaleString('fr-FR')+' L'):'—',color:'#2e7d45',bg:'#e8f5ec'},{icon:'📅',label:'Mois renseignés',value:`${moisRenseignes} / 12`,color:'#1d4ed8',bg:'#eff6ff'},{icon:'📊',label:'Moy. par jour',value:avgLParJ!=='—'?(avgLParJ+' L/j'):'—',color:'#b45309',bg:'#fef3e2'},{icon:'🐄',label:'L/vache/an',value:thisCampVal!==null?(thisCampVal.toLocaleString('fr-FR')+' L'):'—',color:'#2e7d45',bg:'#e8f5ec'},{icon:'💧',label:'L/vache/jour',value:avgParVLParJ!=='—'?(avgParVLParJ+' L/j'):'—',color:'#c2410c',bg:'#fff1ec'}].map(c=>`<div style="background:${c.bg};border:1px solid ${c.color}33;border-radius:12px;padding:14px 16px;text-align:center;"><div style="font-size:22px;margin-bottom:4px;">${c.icon}</div><div style="font-size:16px;font-weight:800;color:${c.color};">${c.value}</div><div style="font-size:10px;color:#7a6f60;margin-top:2px;text-transform:uppercase;letter-spacing:.5px;">${c.label}</div></div>`).join('')}
+  return`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:20px;">
+    ${[{icon:'🥛',l:'Total',v:tot>0?(tot.toLocaleString('fr-FR')+' L'):'—',c:'#2e7d45',bg:'#e8f5ec'},{icon:'🐄',l:'L/vache/an',v:campV!==null?(campV.toLocaleString('fr-FR')+' L'):'—',c:'#2e7d45',bg:'#e8f5ec'},{icon:'📊',l:'Moy./jour',v:tot>0?Math.round(tot/tJ)+' L/j':'—',c:'#b45309',bg:'#fef3e2'},{icon:'💧',l:'L/VL/jour',v:(tot>0&&avgVLA!=='—')?(tot/parseFloat(avgVLA)/tJ).toFixed(1)+' L':'—',c:'#1d4ed8',bg:'#eff6ff'}].map(c=>`<div style="background:${c.bg};border-radius:10px;padding:13px;text-align:center;"><div style="font-size:20px;">${c.icon}</div><div style="font-size:15px;font-weight:800;color:${c.c};margin:4px 0;">${c.v}</div><div style="font-size:10px;color:#7a6f60;text-transform:uppercase;">${c.l}</div></div>`).join('')}
   </div>
-  <div style="border-radius:14px;border:1px solid #e2ddd5;overflow:hidden;">
-    <div style="overflow-x:auto;">
-      <table style="width:100%;border-collapse:collapse;min-width:600px;">
-        <thead><tr style="background:#f4f1eb;">${['Mois','Litres total','Jours','L/VL/j','Progression'].map(h=>`<th style="padding:11px 12px;text-align:left;font-size:10px;color:#7a6f60;font-weight:600;border-bottom:2px solid #e2ddd5;text-transform:uppercase;letter-spacing:.8px;">${h}</th>`).join('')}</tr></thead>
-        <tbody>${rows}<tr style="background:#e8f5ec;font-weight:700;border-top:2px solid #2e7d45;"><td style="padding:10px 12px;font-size:13px;color:#1a5c2a;">🏁 TOTAL</td><td style="padding:10px 8px;font-size:14px;color:#1a5c2a;">${totalLitres>0?totalLitres.toLocaleString('fr-FR')+' L':'—'}</td><td style="padding:10px 12px;text-align:center;font-size:12px;color:#7a6f60;">${totalJours}j</td><td style="padding:10px 12px;text-align:center;font-size:14px;color:#2e7d45;">${avgParVLParJ!=='—'?avgParVLParJ+' L/j':'—'}</td><td></td></tr></tbody>
-      </table>
-    </div>
-  </div>`;
+  <div style="border-radius:12px;border:1px solid #e2ddd5;overflow:hidden;"><div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;min-width:500px;">
+    <thead><tr style="background:#f4f1eb;">${['Mois','Litres','L/VL/jour','Progression'].map(h=>`<th style="padding:10px 12px;text-align:left;font-size:10px;color:#7a6f60;font-weight:600;border-bottom:2px solid #e2ddd5;text-transform:uppercase;">${h}</th>`).join('')}</tr></thead>
+    <tbody>${rows}<tr style="background:#e8f5ec;border-top:2px solid #2e7d45;"><td style="padding:9px 12px;font-weight:700;color:#1a5c2a;">🏁 TOTAL</td><td style="padding:9px 8px;font-size:14px;font-weight:800;color:#1a5c2a;">${tot>0?tot.toLocaleString('fr-FR')+' L':'—'}</td><td style="padding:9px 12px;font-size:14px;font-weight:800;color:#2e7d45;">${(tot>0&&avgVLA!=='—')?(tot/parseFloat(avgVLA)/tJ).toFixed(1)+' L':'—'}</td><td></td></tr></tbody>
+  </table></div></div>`;
 }
-function renderGraphique(data,filled,campagne){
-  if(!filled.length)return`<div style="text-align:center;padding:80px 20px;background:#fff;border:1.5px dashed #e2ddd5;border-radius:16px;"><div style="font-size:52px;margin-bottom:14px;">📊</div><div style="font-size:16px;color:#2c2416;margin-bottom:6px;font-weight:600;">Aucune donnée pour ${campagne}–${campagne+1}</div></div>`;
-  const maxV=Math.max(...data.map(r=>parseFloat(r.vlT)||0),1);
-  const h=210;const barH=6.8;const yMax=185;
-  const bars=data.map((row,i)=>{const v=parseFloat(row.vlT)||0;const sc=SC[getSeason(row.periode)];const bH=v*barH;const x=32+i*38;return `<g><rect x="${x}" y="${yMax-bH}" width="30" height="${bH||2}" fill="${v?sc.accent:'#e5e5e5'}" opacity="${v?1:0.35}" rx="4"/>${v>0?`<text x="${x+15}" y="${yMax-bH-4}" text-anchor="middle" fill="${sc.accent}" font-size="7.5" font-weight="bold" font-family="sans-serif">${v}</text>`:''}</g>`;}).join('');
-  return `<div style="background:#fff;border-radius:14px;border:1px solid #e2ddd5;padding:20px;margin-bottom:20px;"><div style="font-size:11px;color:#7a6f60;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:16px;font-weight:600;">📈 VL Traites — ${campagne}–${campagne+1}</div><div style="overflow-x:auto;"><svg viewBox="0 0 ${data.length*38} ${h}" style="width:100%;min-width:720px;height:${h}px;">${bars}</svg></div></div>`;
+
+function rGraph(data,filled,campagne){
+  if(!filled.length)return`<div style="text-align:center;padding:60px;background:#fff;border:1.5px dashed #e2ddd5;border-radius:14px;"><div style="font-size:48px;">📊</div><div style="margin-top:12px;color:#7a6f60;">Saisir des VL Traites dans l'onglet Calendrier</div></div>`;
+  const h=200;const barH=6.5;const yM=175;
+  const bars=data.map((row,i)=>{const v=parseFloat(row.vlT)||0;const sc=SC[getSeason(row.periode)];const bH=v*barH;const x=30+i*37;return`<g><rect x="${x}" y="${yM-bH}" width="28" height="${bH||2}" fill="${v?sc.accent:'#e5e5e5'}" opacity="${v?1:0.3}" rx="3"/>${v?`<text x="${x+14}" y="${yM-bH-3}" text-anchor="middle" fill="${sc.accent}" font-size="7" font-weight="bold" font-family="sans-serif">${v}</text>`:''}</g>`;}).join('');
+  return`<div style="background:#fff;border-radius:12px;border:1px solid #e2ddd5;padding:18px;"><div style="font-size:11px;color:#7a6f60;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:14px;font-weight:600;">📈 VL Traites — ${campagne}–${campagne+1}</div><div style="overflow-x:auto;"><svg viewBox="0 0 ${data.length*37} ${h}" style="width:100%;min-width:700px;height:${h}px;">${bars}</svg></div></div>`;
 }
+
 function bindEvents(){
-  const cb=document.getElementById('camp-btn');if(cb)cb.onclick=(e)=>{e.stopPropagation();setState({campMenu:!state.campMenu,menuOpen:false});};
-  const mb=document.getElementById('menu-btn');if(mb)mb.onclick=(e)=>{e.stopPropagation();setState({menuOpen:!state.menuOpen,campMenu:false});};
-  document.querySelectorAll('.cell-input').forEach(inp=>{inp.addEventListener('input',e=>{updateData(+e.target.dataset.idx,e.target.dataset.field,e.target.value);});inp.addEventListener('focus',e=>{e.target.style.borderColor='#2e7d45';e.target.style.background='#fff';});inp.addEventListener('blur',e=>{e.target.style.background='#fafaf8';clearTimeout(_saveTimer);save(state.allData);});});
-  document.querySelectorAll('[data-lait-idx]').forEach(inp=>{inp.addEventListener('input',e=>{updateLait(+e.target.getAttribute('data-lait-idx'),e.target.value);});inp.addEventListener('blur',e=>{clearTimeout(_saveTimer);save(state.allData);});});
-  document.querySelectorAll('[data-didx]').forEach(inp=>{inp.addEventListener('input',e=>{updateDates(+e.target.dataset.didx,e.target.value);});inp.addEventListener('blur',e=>{clearTimeout(_saveTimer);save(state.allData);});});
-  document.addEventListener('mousedown',function outsideClick(e){const cw=document.getElementById('camp-btn-wrap');const mw=document.getElementById('menu-btn-wrap');if(state.campMenu&&cw&&!cw.contains(e.target)){state.campMenu=false;render();}if(state.menuOpen&&mw&&!mw.contains(e.target)){state.menuOpen=false;render();}},{once:true});
+  const cb=document.getElementById('cbtn');if(cb)cb.onclick=e=>{e.stopPropagation();setState({campMenu:!state.campMenu,menuOpen:false});};
+  const mb=document.getElementById('mbtn');if(mb)mb.onclick=e=>{e.stopPropagation();setState({menuOpen:!state.menuOpen,campMenu:false});};
+  document.querySelectorAll('.cell-input').forEach(inp=>{
+    inp.addEventListener('input',e=>updateData(+e.target.dataset.idx,e.target.dataset.field,e.target.value));
+    inp.addEventListener('focus',e=>{e.target.style.borderColor='#2e7d45';e.target.style.background='#fff';});
+    inp.addEventListener('blur',e=>{e.target.style.background='#fafaf8';clearTimeout(_t);save(state.allData);});
+  });
+  document.querySelectorAll('[data-lait-idx]').forEach(inp=>{
+    inp.addEventListener('input',e=>updateLait(+e.target.getAttribute('data-lait-idx'),e.target.value));
+    inp.addEventListener('blur',()=>{clearTimeout(_t);save(state.allData);});
+  });
+  document.querySelectorAll('[data-didx]').forEach(inp=>{
+    inp.addEventListener('input',e=>updateDates(+e.target.dataset.didx,e.target.value));
+    inp.addEventListener('blur',()=>{clearTimeout(_t);save(state.allData);});
+  });
+  document.addEventListener('mousedown',e=>{
+    const cw=document.getElementById('cbw');const mw=document.getElementById('mbw');
+    if(state.campMenu&&cw&&!cw.contains(e.target)){state.campMenu=false;render();}
+    if(state.menuOpen&&mw&&!mw.contains(e.target)){state.menuOpen=false;render();}
+  },{once:true});
 }
-function selectCampagne(yr){setState({campagne:yr,campMenu:false,tab:'calendrier',filter:'all'});}
-function exportJSON(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(state.allData,null,2)],{type:'application/json'}));a.download='beaufort-toutes-campagnes.json';a.click();setState({menuOpen:false});}
-function importJSON(e){const file=e.target.files[0];if(!file)return;const r=new FileReader();r.onload=ev=>{try{const d=JSON.parse(ev.target.result);state.allData={...state.allData,...d};save(state.allData);setState({menuOpen:false});alert('Données importées !');}catch(_){alert('Fichier invalide.');}};r.readAsText(file);}
-window.setState=setState;window.selectCampagne=selectCampagne;window.generatePDF=generatePDF;window.exportCSV=exportCSV;window.exportJSON=exportJSON;window.importJSON=importJSON;window.resetCampagne=resetCampagne;
+
+window.setState=setState;window.generatePDF=generatePDF;window.exportCSV=exportCSV;window.exportJSON=exportJSON;window.importJSON=importJSON;window.resetCampagne=resetCampagne;
 load();render();
-if('serviceWorker'in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('./sw.js').catch(()=>{});});}
-<\/script>
+if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+</script>
 </body>
 </html>
