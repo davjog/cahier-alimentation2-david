@@ -2,14 +2,15 @@
   "name": "Calendrier d'Alimentation Beaufort",
   "short_name": "Beaufort",
   "description": "Calendrier d'alimentation pour éleveurs Beaufort",
-  "start_url": "/",
+  "start_url": "/cahier-alimentation2-david/",
+  "scope": "/cahier-alimentation2-david/",
   "display": "standalone",
   "background_color": "#f7f5f0",
   "theme_color": "#2e7d45",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "icon.svg",
+      "src": "/cahier-alimentation2-david/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
